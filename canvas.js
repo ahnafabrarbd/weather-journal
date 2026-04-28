@@ -108,14 +108,15 @@
             markers.push({ marker: marker, lat: lat, lng: lng });
         });
 
-        var nav = document.getElementById('map-nav');
         var countEl = document.getElementById('entry-count');
 
         if (markers.length > 0) {
-            nav.classList.remove('hidden');
             countEl.textContent = markers.length + ' entr' + (markers.length === 1 ? 'y' : 'ies');
+            // Auto-fly to first entry
+            currentIndex = 0;
+            flyTo(0);
         } else {
-            countEl.textContent = 'no entries with location data';
+            countEl.textContent = 'no entries with location — allow location access when posting';
         }
     }
 })();
