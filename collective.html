@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WEATHER — Collective</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
     <div class="page hidden" id="app">
@@ -17,10 +18,20 @@
                 <a href="collective.html" class="active">Collective</a>
             </div>
         </nav>
-        <div class="history-list" id="collective-list"></div>
+        <div class="tab-strip">
+            <button id="tab-time" class="active">Time</button>
+            <button id="tab-space">Space</button>
+        </div>
+        <div class="tab-panel active" id="panel-time">
+            <div class="history-list" id="collective-list"></div>
+        </div>
+        <div class="tab-panel" id="panel-space">
+            <div class="map-container" id="collective-map"></div>
+        </div>
     </div>
     <div class="loading-screen" id="loading">...</div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
