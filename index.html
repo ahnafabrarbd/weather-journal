@@ -35,17 +35,23 @@
     </style>
 </head>
 <body>
-    <div class="login-page hidden" id="login">
+    <div class="login-page hidden" id="screen">
         <h1>WEATHER</h1>
         <p class="subtitle">a journal of the sky</p>
 
-        <!-- Gate: initial view -->
-        <div id="gate" style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+        <!-- Logged-in gate: ENTER + Log out -->
+        <div id="gate-logged" class="hidden" style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+            <button class="gate-btn" id="btn-enter-main">ENTER</button>
+            <div class="gate-link" id="btn-logout">Log out</div>
+        </div>
+
+        <!-- Logged-out gate: ENTER (login) + Create Account -->
+        <div id="gate-auth" class="hidden" style="display:flex;flex-direction:column;align-items:center;gap:16px;">
             <button class="gate-btn" id="btn-enter">ENTER</button>
             <div class="gate-link" id="btn-create">Create Account</div>
         </div>
 
-        <!-- Auth form: hidden until Enter or Create Account clicked -->
+        <!-- Auth form -->
         <div class="auth-box hidden" id="auth-box">
             <input class="auth-input" type="text" id="input-email" placeholder="Email">
             <input class="auth-input" type="password" id="input-password" placeholder="Password">
@@ -60,9 +66,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="firebase-init.js"></script>
     <script>
-        var loginEl = document.getElementById('login');
+        var screen = document.getElementById('screen');
         var loadingEl = document.getElementById('loading');
-        var gate = document.getElementById('gate');
+        var gateLogged = document.getElementById('gate-logged');
+        var gateAuth = document.getElementById('gate-auth');
         var authBox = document.getElementById('auth-box');
         var inputEmail = document.getElementById('input-email');
         var inputPassword = document.getElementById('input-password');
@@ -70,37 +77,63 @@
         var btnSubmit = document.getElementById('btn-submit');
 
         var isLogin = true;
+        var loggedIn = false;
 
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
         auth.onAuthStateChanged(function(user) {
             loadingEl.classList.add('hidden');
+            screen.classList.remove('hidden');
+            loggedIn = !!user;
+
+            // Reset to gate view
+            authBox.classList.add('hidden');
+
             if (user) {
-                window.location.href = 'journal.html';
+                gateLogged.classList.remove('hidden');
+                gateLogged.style.display = 'flex';
+                gateAuth.classList.add('hidden');
+                gateAuth.style.display = 'none';
             } else {
-                loginEl.classList.remove('hidden');
+                gateAuth.classList.remove('hidden');
+                gateAuth.style.display = 'flex';
+                gateLogged.classList.add('hidden');
+                gateLogged.style.display = 'none';
             }
         });
 
+        // Logged in: ENTER goes straight to journal
+        document.getElementById('btn-enter-main').addEventListener('click', function() {
+            window.location.href = 'journal.html';
+        });
+
+        // Logged in: Log out
+        document.getElementById('btn-logout').addEventListener('click', function() {
+            doSignOut();
+        });
+
+        // Not logged in: ENTER shows login form
         document.getElementById('btn-enter').addEventListener('click', function() {
             isLogin = true;
             btnSubmit.textContent = 'LOG IN';
-            gate.classList.add('hidden');
+            gateAuth.style.display = 'none';
             authBox.classList.remove('hidden');
             inputEmail.focus();
         });
 
+        // Not logged in: Create Account
         document.getElementById('btn-create').addEventListener('click', function() {
             isLogin = false;
             btnSubmit.textContent = 'CREATE ACCOUNT';
-            gate.classList.add('hidden');
+            gateAuth.style.display = 'none';
             authBox.classList.remove('hidden');
             inputEmail.focus();
         });
 
+        // Back to gate
         document.getElementById('auth-back').addEventListener('click', function() {
             authBox.classList.add('hidden');
-            gate.classList.remove('hidden');
+            gateAuth.style.display = 'flex';
             authError.textContent = '';
             inputEmail.value = '';
             inputPassword.value = '';
@@ -125,7 +158,9 @@
                 ? auth.signInWithEmailAndPassword(email, pass)
                 : auth.createUserWithEmailAndPassword(email, pass);
 
-            promise.catch(function(err) {
+            promise.then(function() {
+                // After login/signup, show logged-in gate (not auto-redirect)
+            }).catch(function(err) {
                 var msg = err.message || 'Something went wrong';
                 if (err.code === 'auth/user-not-found') msg = 'No account with that email';
                 if (err.code === 'auth/wrong-password') msg = 'Wrong password';
