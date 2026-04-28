@@ -62,7 +62,8 @@
         .entry-count {
             position: absolute;
             bottom: 16px;
-            left: 16px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 1000;
             font-size: 10px;
             letter-spacing: 2px;
@@ -70,6 +71,26 @@
             text-transform: uppercase;
             font-family: 'Courier New', Courier, monospace;
         }
+        .map-arrow {
+            position: absolute;
+            bottom: 24px;
+            z-index: 1000;
+            background: none;
+            border: 1px solid #fff;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 18px;
+            width: 44px;
+            height: 44px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.1s;
+        }
+        .map-arrow:hover { background: #222; }
+        .map-arrow-left { left: 24px; }
+        .map-arrow-right { right: 24px; }
     </style>
 </head>
 <body>
@@ -84,6 +105,10 @@
             </div>
         </nav>
         <div id="map"></div>
+        <div id="map-nav" class="hidden">
+            <button id="btn-prev-entry" class="map-arrow map-arrow-left">&larr;</button>
+            <button id="btn-next-entry" class="map-arrow map-arrow-right">&rarr;</button>
+        </div>
         <div class="entry-count" id="entry-count"></div>
     </div>
     <div class="loading-screen" id="loading">...</div>
