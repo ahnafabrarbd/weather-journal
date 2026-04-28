@@ -550,10 +550,6 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
     position: relative;
 }
 
-.leaflet-tile-pane {
-    filter: invert(1) grayscale(1) contrast(4) brightness(0.5);
-}
-
 .leaflet-control-attribution { display: none !important; }
 
 .leaflet-popup-content-wrapper {

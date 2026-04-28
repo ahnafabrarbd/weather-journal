@@ -41,7 +41,7 @@
             var src = att.data || att.url || '';
             if (!src) return;
             if (att.type && att.type.indexOf('image/') === 0) {
-                html += '<img src="' + src + '" alt="" loading="lazy">';
+                html += '<img src="' + src + '" alt="">';
             } else if (att.type && att.type.indexOf('audio/') === 0) {
                 html += '<audio controls preload="metadata" src="' + src + '"></audio>';
             }
@@ -64,8 +64,10 @@
             attributionControl: false
         });
 
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd',
+            maxZoom: 19,
+            attribution: ''
         }).addTo(map);
 
         btnConnect = document.getElementById('btn-connect');
