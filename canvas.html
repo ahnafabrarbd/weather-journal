@@ -7,58 +7,6 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <style>
-        #map {
-            flex: 1;
-            background: #000;
-        }
-        /* Invert OSM tiles: white outlines on pure black */
-        .leaflet-tile-pane {
-            filter: invert(1) grayscale(1) contrast(4) brightness(0.5);
-        }
-        /* Kill all leaflet UI chrome */
-        .leaflet-control-attribution { display: none !important; }
-        /* Popup styling */
-        .leaflet-popup-content-wrapper {
-            background: #000;
-            border: 1px solid #fff;
-            border-radius: 0;
-            color: #fff;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 11px;
-            line-height: 1.5;
-            padding: 0;
-        }
-        .leaflet-popup-content {
-            margin: 12px 14px;
-        }
-        .leaflet-popup-tip {
-            background: #000;
-            border: 1px solid #fff;
-            border-top: none;
-            border-left: none;
-        }
-        .leaflet-popup-close-button {
-            color: #fff !important;
-            font-size: 16px !important;
-        }
-        .popup-date {
-            font-size: 9px;
-            letter-spacing: 1px;
-            color: #666;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-        .popup-text {
-            max-height: 120px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-        .popup-loc {
-            font-size: 9px;
-            color: #666;
-            margin-top: 6px;
-            letter-spacing: 1px;
-        }
         .entry-count {
             position: absolute;
             bottom: 16px;
@@ -104,7 +52,12 @@
                 <a href="collective.html">Collective</a>
             </div>
         </nav>
-        <div id="map"></div>
+        <div class="map-container" id="map">
+            <div class="map-toolbar">
+                <button id="btn-connect">Connect</button>
+            </div>
+            <div class="map-banner hidden" id="map-banner"></div>
+        </div>
         <div id="map-nav">
             <button id="btn-prev-entry" class="map-arrow map-arrow-left">&larr;</button>
             <button id="btn-next-entry" class="map-arrow map-arrow-right">&rarr;</button>

@@ -607,6 +607,79 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
     letter-spacing: 1px;
 }
 
+/* Map toolbar (top-right of canvas/map page) */
+.map-toolbar {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1000;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-family: var(--font);
+}
+
+.map-toolbar button,
+.map-toolbar input[type="date"] {
+    background: #000;
+    border: 1px solid #8B2252;
+    color: #8B2252;
+    font-family: var(--font);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 7px 12px;
+    cursor: pointer;
+    outline: none;
+    color-scheme: dark;
+}
+
+.map-toolbar button:hover,
+.map-toolbar button.on {
+    background: #8B2252;
+    color: #000;
+}
+
+.map-toolbar input[type="date"] { cursor: text; }
+
+.map-banner {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: #000;
+    border: 1px solid #8B2252;
+    color: #8B2252;
+    font-family: var(--font);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+}
+
+.connection-popup .leaflet-popup-content-wrapper { border-color: #8B2252; }
+
+.popup-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.popup-actions button {
+    background: transparent;
+    border: 1px solid var(--dim);
+    color: var(--dim);
+    font-family: var(--font);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+.popup-actions button:hover { color: var(--fg); border-color: var(--fg); }
+
 /* Tab strip (used in Collective) */
 .tab-strip {
     display: flex;
