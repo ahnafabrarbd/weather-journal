@@ -143,13 +143,30 @@
     async function startRec() {
         try {
             var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
+
+            // Pick a mimeType the browser actually supports so the recorded
+            // bytes match the declared Blob type. Safari only does mp4, Chrome
+            // prefers webm/opus.
+            var candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+            var mime = '';
+            for (var i = 0; i < candidates.length; i++) {
+                if (window.MediaRecorder && MediaRecorder.isTypeSupported(candidates[i])) {
+                    mime = candidates[i];
+                    break;
+                }
+            }
+            mediaRecorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
             recChunks = [];
 
             mediaRecorder.ondataavailable = function (e) { recChunks.push(e.data); };
             mediaRecorder.onstop = function () {
-                var blob = new Blob(recChunks, { type: 'audio/webm' });
-                var file = new File([blob], 'recording_' + Date.now() + '.webm', { type: 'audio/webm' });
+                // Use the mimeType the recorder actually produced.
+                var actual = mediaRecorder.mimeType || mime || 'audio/webm';
+                var ext = actual.indexOf('mp4') !== -1 ? 'm4a'
+                        : actual.indexOf('ogg') !== -1 ? 'ogg'
+                        : 'webm';
+                var blob = new Blob(recChunks, { type: actual });
+                var file = new File([blob], 'recording_' + Date.now() + '.' + ext, { type: actual });
                 addFiles([file]);
                 stream.getTracks().forEach(function (t) { t.stop(); });
             };

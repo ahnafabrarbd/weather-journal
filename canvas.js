@@ -34,6 +34,22 @@
         return d.innerHTML;
     }
 
+    function renderAttachmentsHtml(atts) {
+        if (!atts || !atts.length) return '';
+        var html = '<div class="popup-attachments">';
+        atts.forEach(function (att) {
+            var src = att.data || att.url || '';
+            if (!src) return;
+            if (att.type && att.type.indexOf('image/') === 0) {
+                html += '<img src="' + src + '" alt="" loading="lazy">';
+            } else if (att.type && att.type.indexOf('audio/') === 0) {
+                html += '<audio controls preload="metadata" src="' + src + '"></audio>';
+            }
+        });
+        html += '</div>';
+        return html;
+    }
+
     function setBanner(text) {
         if (!text) { banner.classList.add('hidden'); banner.textContent = ''; return; }
         banner.textContent = text;
@@ -273,9 +289,10 @@
             var content = d.content || '';
             var preview = content.length > 200 ? content.slice(0, 200) + '...' : content;
 
-            var popup = '<div class="popup-date">' + esc(dateStr) + '</div>' +
-                '<div class="popup-text">' + esc(preview) + '</div>' +
-                '<div class="popup-loc">' + esc(locStr) + '</div>';
+            var popup = '<div class="popup-date">' + esc(dateStr) + '</div>';
+            if (preview) popup += '<div class="popup-text">' + esc(preview) + '</div>';
+            popup += renderAttachmentsHtml(d.attachments);
+            popup += '<div class="popup-loc">' + esc(locStr) + '</div>';
 
             var marker = L.circleMarker([lat, lng], {
                 radius: 5,

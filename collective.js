@@ -28,6 +28,22 @@
         return d.innerHTML;
     }
 
+    function renderAttachmentsHtml(atts) {
+        if (!atts || !atts.length) return '';
+        var html = '<div class="popup-attachments">';
+        atts.forEach(function (att) {
+            var src = att.data || att.url || '';
+            if (!src) return;
+            if (att.type && att.type.indexOf('image/') === 0) {
+                html += '<img src="' + src + '" alt="" loading="lazy">';
+            } else if (att.type && att.type.indexOf('audio/') === 0) {
+                html += '<audio controls preload="metadata" src="' + src + '"></audio>';
+            }
+        });
+        html += '</div>';
+        return html;
+    }
+
     function wireTabs() {
         tabTime.addEventListener('click', function () { showTab('time'); });
         tabSpace.addEventListener('click', function () { showTab('space'); });
@@ -87,9 +103,10 @@
             var author = d.authorEmail || 'anonymous';
 
             var popup = '<div class="popup-author">' + esc(author) + '</div>' +
-                '<div class="popup-date">' + esc(dateStr) + '</div>' +
-                '<div class="popup-text">' + esc(preview) + '</div>' +
-                '<div class="popup-loc">' + esc(locStr) + '</div>';
+                '<div class="popup-date">' + esc(dateStr) + '</div>';
+            if (preview) popup += '<div class="popup-text">' + esc(preview) + '</div>';
+            popup += renderAttachmentsHtml(d.attachments);
+            popup += '<div class="popup-loc">' + esc(locStr) + '</div>';
 
             var marker = L.circleMarker([lat, lng], {
                 radius: 5,

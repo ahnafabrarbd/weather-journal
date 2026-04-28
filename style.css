@@ -607,6 +607,31 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
     letter-spacing: 1px;
 }
 
+.popup-attachments {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.popup-attachments img {
+    max-width: 220px;
+    max-height: 160px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    border: 1px solid #333;
+}
+
+.popup-attachments audio {
+    width: 220px;
+    height: 32px;
+    filter: invert(1);
+}
+
 /* Map toolbar (top-right of canvas/map page) */
 .map-toolbar {
     position: absolute;
