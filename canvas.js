@@ -18,6 +18,7 @@
 
     var btnConnect = null;
     var banner = null;
+    var filterDate = null; // YYYY-MM-DD or null
 
     requireAuth(function (user) {
         currentUser = user;
@@ -55,6 +56,20 @@
         banner = document.getElementById('map-banner');
 
         btnConnect.addEventListener('click', toggleConnectMode);
+
+        var dateInput = document.getElementById('filter-date');
+        dateInput.addEventListener('change', function () {
+            filterDate = dateInput.value || null;
+            applyFilter();
+        });
+
+        document.getElementById('btn-clear-date').addEventListener('click', function () {
+            dateInput.value = '';
+            filterDate = null;
+            applyFilter();
+        });
+
+        document.getElementById('btn-connect-all').addEventListener('click', chainVisible);
 
         document.getElementById('btn-prev-entry').addEventListener('click', function () {
             if (!markers.length) return;
@@ -310,5 +325,69 @@
                 note: d.note || ''
             });
         });
+        applyFilter();
+    }
+
+    function localDateKey(d) {
+        if (!d) return null;
+        var y = d.getFullYear();
+        var m = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + day;
+    }
+
+    function markerMatchesFilter(m) {
+        if (!filterDate) return true;
+        return localDateKey(m.createdAt) === filterDate;
+    }
+
+    function applyFilter() {
+        var visibleIds = {};
+        markers.forEach(function (m) {
+            var visible = markerMatchesFilter(m);
+            if (visible) {
+                if (!map.hasLayer(m.marker)) m.marker.addTo(map);
+                visibleIds[m.id] = true;
+            } else {
+                if (map.hasLayer(m.marker)) map.removeLayer(m.marker);
+            }
+        });
+
+        connections.forEach(function (c) {
+            var bothVisible = visibleIds[c.fromEntryId] && visibleIds[c.toEntryId];
+            if (bothVisible) {
+                if (!map.hasLayer(c.polyline)) c.polyline.addTo(map);
+            } else {
+                if (map.hasLayer(c.polyline)) map.removeLayer(c.polyline);
+            }
+        });
+
+        var visibleCount = Object.keys(visibleIds).length;
+        var countEl = document.getElementById('entry-count');
+        if (filterDate) {
+            countEl.textContent = visibleCount + ' on ' + filterDate;
+        } else if (markers.length > 0) {
+            countEl.textContent = markers.length + ' entr' + (markers.length === 1 ? 'y' : 'ies');
+        }
+    }
+
+    async function chainVisible() {
+        var visible = markers
+            .filter(markerMatchesFilter)
+            .filter(function (m) { return m.createdAt; })
+            .slice()
+            .sort(function (a, b) { return a.createdAt - b.createdAt; });
+
+        if (visible.length < 2) {
+            alert('Need at least two visible entries with timestamps to chain.');
+            return;
+        }
+
+        if (!window.confirm('Chain ' + visible.length + ' entries with ' + (visible.length - 1) + ' connections?')) return;
+
+        for (var i = 0; i < visible.length - 1; i++) {
+            await createConnection(visible[i].id, visible[i + 1].id, '');
+        }
+        applyFilter();
     }
 })();
