@@ -11,9 +11,9 @@
             flex: 1;
             background: #000;
         }
-        /* Strip tiles to white-on-black outlines */
+        /* Invert OSM tiles: white outlines on pure black */
         .leaflet-tile-pane {
-            filter: grayscale(1) contrast(6) brightness(0.35);
+            filter: invert(1) grayscale(1) contrast(4) brightness(0.5);
         }
         /* Kill all leaflet UI chrome */
         .leaflet-control-attribution { display: none !important; }

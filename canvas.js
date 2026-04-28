@@ -27,11 +27,9 @@
             attributionControl: false
         });
 
-        // CartoDB light_nolabels tiles — the CSS filter on .leaflet-tile-pane
-        // turns this into white outlines on black
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-            maxZoom: 19,
-            subdomains: 'abcd'
+        // OpenStreetMap tiles — CSS filter inverts to white outlines on black
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
         }).addTo(map);
     }
 
