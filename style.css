@@ -367,19 +367,19 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
     position: absolute;
     top: 16px;
     right: 16px;
-    background: transparent;
-    border: 1px solid var(--dim);
-    color: var(--dim);
+    background: #000;
+    border: 1px solid #8B2252;
+    color: #8B2252;
     font-family: var(--font);
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    padding: 5px 10px;
+    padding: 6px 12px;
     cursor: pointer;
-    transition: color 0.1s, border-color 0.1s;
+    transition: background 0.1s, color 0.1s;
 }
 
-.entry-import-btn:hover { color: var(--fg); border-color: var(--fg); }
+.entry-import-btn:hover { background: #8B2252; color: #000; }
 .entry-import-btn:disabled { opacity: 0.4; pointer-events: none; }
 
 .entry-imported-tag {
@@ -691,9 +691,9 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
     background: transparent;
     border: none;
     border-bottom: 1px solid transparent;
-    color: var(--dim);
+    color: #8B2252;
     font-family: var(--font);
-    font-size: 11px;
+    font-size: 12px;
     letter-spacing: 3px;
     text-transform: uppercase;
     padding: 14px 0;
@@ -701,8 +701,9 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
 }
 
 .tab-strip button.active {
-    color: var(--fg);
-    border-bottom-color: var(--fg);
+    color: #fff;
+    border-bottom-color: #8B2252;
+    background: rgba(139, 34, 82, 0.12);
 }
 
 .tab-panel { display: none; flex: 1; flex-direction: column; }
