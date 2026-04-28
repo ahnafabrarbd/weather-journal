@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEATHER — History</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page hidden" id="app">
+        <nav>
+            <span class="logo">Weather</span>
+            <div class="links">
+                <a href="journal.html">Log</a>
+                <a href="history.html" class="active">History</a>
+                <a href="canvas.html">Map</a>
+                <a href="#" id="btn-logout">Exit</a>
+            </div>
+        </nav>
+        <div class="history-list" id="history-list"></div>
+    </div>
+    <div class="loading-screen" id="loading">...</div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+    <script src="firebase-init.js"></script>
+    <script src="history.js"></script>
+</body>
+</html>

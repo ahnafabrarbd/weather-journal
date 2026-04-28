@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEATHER</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-page hidden" id="login">
+        <h1>WEATHER</h1>
+        <p class="subtitle">a journal of the sky</p>
+        <button class="btn" id="btn-login">Sign in with Google</button>
+    </div>
+    <div class="loading-screen" id="loading">...</div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="firebase-init.js"></script>
+    <script>
+        var loginEl = document.getElementById('login');
+        var loadingEl = document.getElementById('loading');
+
+        auth.onAuthStateChanged(function(user) {
+            loadingEl.classList.add('hidden');
+            if (user) {
+                window.location.href = 'journal.html';
+            } else {
+                loginEl.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('btn-login').addEventListener('click', function() {
+            signInWithGoogle().catch(function(err) {
+                console.error(err);
+                alert('Sign-in failed: ' + err.message);
+            });
+        });
+    </script>
+</body>
+</html>

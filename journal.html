@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEATHER — Log</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page hidden" id="app">
+        <nav>
+            <span class="logo">Weather</span>
+            <div class="links">
+                <a href="journal.html" class="active">Log</a>
+                <a href="history.html">History</a>
+                <a href="canvas.html">Map</a>
+                <a href="#" id="btn-logout">Exit</a>
+            </div>
+        </nav>
+        <div class="journal-meta">
+            <span id="meta-time"></span>
+            <span id="meta-location"></span>
+        </div>
+        <div class="journal-body">
+            <textarea class="journal-textarea" id="entry-text"
+                placeholder="Write about the weather..." autofocus></textarea>
+        </div>
+        <div class="attachments-preview" id="preview"></div>
+        <div class="attachments-bar">
+            <label class="attach-btn">
+                PHOTO
+                <input type="file" accept="image/*" capture="environment" id="input-photo">
+            </label>
+            <label class="attach-btn">
+                GALLERY
+                <input type="file" accept="image/*" multiple id="input-gallery">
+            </label>
+            <button class="attach-btn" id="btn-record">REC</button>
+            <label class="attach-btn">
+                ATTACH
+                <input type="file" multiple id="input-file">
+            </label>
+            <div class="recording-indicator hidden" id="rec-indicator">
+                <span class="rec-dot"></span>
+                <span id="rec-time">00:00</span>
+                <button class="attach-btn" id="btn-stop">STOP</button>
+            </div>
+            <div class="post-spacer"></div>
+            <button class="btn btn-primary" id="btn-post">POST</button>
+        </div>
+        <div class="drop-overlay" id="drop-overlay">DROP FILES</div>
+    </div>
+    <div class="loading-screen" id="loading">...</div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+    <script src="firebase-init.js"></script>
+    <script src="journal.js"></script>
+</body>
+</html>
