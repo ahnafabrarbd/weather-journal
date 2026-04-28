@@ -261,6 +261,7 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
     padding: 20px 24px;
     cursor: pointer;
     transition: background 0.1s;
+    position: relative;
 }
 
 .entry-item:hover { background: #080808; }
@@ -359,6 +360,37 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
 .collective-entry {
     border-bottom: 1px solid #111;
     padding: 20px 24px;
+    position: relative;
+}
+
+.entry-import-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: transparent;
+    border: 1px solid var(--dim);
+    color: var(--dim);
+    font-family: var(--font);
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: color 0.1s, border-color 0.1s;
+}
+
+.entry-import-btn:hover { color: var(--fg); border-color: var(--fg); }
+.entry-import-btn:disabled { opacity: 0.4; pointer-events: none; }
+
+.entry-imported-tag {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: #8B2252;
+    text-transform: uppercase;
+    pointer-events: none;
 }
 
 .collective-entry .entry-meta {

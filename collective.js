@@ -168,6 +168,16 @@
 
             entry.innerHTML = html;
 
+            if (d.authorId !== currentUser.uid) {
+                var importBtn = document.createElement('button');
+                importBtn.className = 'entry-import-btn';
+                importBtn.textContent = 'Import';
+                importBtn.addEventListener('click', (function (entryDocId, entryData) {
+                    return function () { importEntry(entryDocId, entryData, importBtn); };
+                })(doc.id, d));
+                entry.appendChild(importBtn);
+            }
+
             var commentsSection = document.createElement('div');
             commentsSection.className = 'comments-section';
 
@@ -199,6 +209,31 @@
 
             list.appendChild(entry);
         });
+    }
+
+    async function importEntry(publicEntryId, data, btn) {
+        btn.disabled = true;
+        btn.textContent = '...';
+        try {
+            await db.collection('users').doc(currentUser.uid)
+                .collection('entries').add({
+                    content: data.content || '',
+                    location: data.location || {},
+                    attachments: data.attachments || [],
+                    createdAt: data.createdAt || null,
+                    clientTimestamp: data.clientTimestamp || '',
+                    importedFromUid: data.authorId || null,
+                    importedFromEmail: data.authorEmail || 'anonymous',
+                    importedFromEntryId: publicEntryId,
+                    importedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            btn.textContent = 'Imported';
+        } catch (err) {
+            console.error(err);
+            btn.disabled = false;
+            btn.textContent = 'Import';
+            alert('Import failed: ' + err.message);
+        }
     }
 
     async function loadComments(entryId, container) {

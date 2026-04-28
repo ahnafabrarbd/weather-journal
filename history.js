@@ -81,7 +81,11 @@
                 if (d.location.altitude !== null) locStr += ' | ALT ' + d.location.altitude.toFixed(1) + 'M';
             }
 
-            var html = '<div class="entry-meta">';
+            var html = '';
+            if (d.importedFromEmail) {
+                html += '<div class="entry-imported-tag">collected from ' + esc(d.importedFromEmail) + '</div>';
+            }
+            html += '<div class="entry-meta">';
             html += '<span>' + esc(dateStr) + '</span>';
             if (locStr) html += '<span>' + esc(locStr) + '</span>';
             html += '</div>';
@@ -111,23 +115,25 @@
 
             item.innerHTML = html;
 
-            // Public toggle at bottom-left
-            var toggle = document.createElement('div');
-            toggle.className = 'public-toggle';
-            var box = document.createElement('span');
-            box.className = 'toggle-box' + (d.public ? ' on' : '');
-            toggle.appendChild(box);
-            var label = document.createElement('span');
-            label.textContent = 'Public';
-            toggle.appendChild(label);
+            // Public toggle (hidden for imported entries — those are someone else's words)
+            if (!d.importedFromEmail) {
+                var toggle = document.createElement('div');
+                toggle.className = 'public-toggle';
+                var box = document.createElement('span');
+                box.className = 'toggle-box' + (d.public ? ' on' : '');
+                toggle.appendChild(box);
+                var label = document.createElement('span');
+                label.textContent = 'Public';
+                toggle.appendChild(label);
 
-            toggle.addEventListener('click', function (e) {
-                e.stopPropagation();
-                var newState = !box.classList.contains('on');
-                togglePublic(doc.id, d, newState, box);
-            });
+                toggle.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    var newState = !box.classList.contains('on');
+                    togglePublic(doc.id, d, newState, box);
+                });
 
-            item.appendChild(toggle);
+                item.appendChild(toggle);
+            }
 
             // Expand/collapse
             item.addEventListener('click', function (e) {
