@@ -5,6 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WEATHER — Map</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        #map {
+            flex: 1;
+            background: #000;
+        }
+        /* Strip tiles to white-on-black outlines */
+        .leaflet-tile-pane {
+            filter: grayscale(1) contrast(6) brightness(0.35);
+        }
+        /* Kill all leaflet UI chrome */
+        .leaflet-control-attribution { display: none !important; }
+        /* Popup styling */
+        .leaflet-popup-content-wrapper {
+            background: #000;
+            border: 1px solid #fff;
+            border-radius: 0;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            padding: 0;
+        }
+        .leaflet-popup-content {
+            margin: 12px 14px;
+        }
+        .leaflet-popup-tip {
+            background: #000;
+            border: 1px solid #fff;
+            border-top: none;
+            border-left: none;
+        }
+        .leaflet-popup-close-button {
+            color: #fff !important;
+            font-size: 16px !important;
+        }
+        .popup-date {
+            font-size: 9px;
+            letter-spacing: 1px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .popup-text {
+            max-height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .popup-loc {
+            font-size: 9px;
+            color: #666;
+            margin-top: 6px;
+            letter-spacing: 1px;
+        }
+        .entry-count {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            z-index: 1000;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: #555;
+            text-transform: uppercase;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
 </head>
 <body>
     <div class="page hidden" id="app">
@@ -17,21 +83,12 @@
                 <a href="collective.html">Collective</a>
             </div>
         </nav>
-        <div id="canvas-viewport">
-            <div id="canvas-world">
-                <svg id="canvas-edges"></svg>
-                <div id="canvas-nodes"></div>
-            </div>
-        </div>
-        <div class="canvas-toolbar">
-            <button class="btn" id="btn-import">Import Entries</button>
-            <button class="btn" id="btn-add-node">+ Node</button>
-            <button class="btn" id="btn-connect">Connect</button>
-            <button class="btn" id="btn-reset">Reset View</button>
-        </div>
+        <div id="map"></div>
+        <div class="entry-count" id="entry-count"></div>
     </div>
     <div class="loading-screen" id="loading">...</div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
