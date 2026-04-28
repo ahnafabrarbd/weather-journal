@@ -96,8 +96,8 @@
 
             var marker = L.circleMarker([lat, lng], {
                 radius: 5,
-                color: '#fff',
-                fillColor: '#fff',
+                color: '#8B2252',
+                fillColor: '#8B2252',
                 fillOpacity: 0.9,
                 weight: 1
             }).addTo(map).bindPopup(popup, {
