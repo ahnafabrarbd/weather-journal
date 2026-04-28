@@ -13,15 +13,35 @@
         loadEntries();
     });
 
-    document.getElementById('btn-logout').addEventListener('click', function (e) {
-        e.preventDefault();
-        doSignOut();
-    });
-
     function esc(text) {
         var d = document.createElement('div');
         d.textContent = text;
         return d.innerHTML;
+    }
+
+    async function togglePublic(docId, data, isPublic, toggleBox) {
+        // Update user's own entry
+        await db.collection('users').doc(currentUser.uid)
+            .collection('entries').doc(docId).update({ public: isPublic });
+
+        if (isPublic) {
+            // Copy to public_entries
+            await db.collection('public_entries').doc(docId).set({
+                content: data.content || '',
+                location: data.location || {},
+                attachments: data.attachments || [],
+                createdAt: data.createdAt || null,
+                clientTimestamp: data.clientTimestamp || '',
+                authorId: currentUser.uid,
+                authorEmail: currentUser.email || 'anonymous',
+                public: true
+            });
+        } else {
+            // Remove from public_entries
+            await db.collection('public_entries').doc(docId).delete();
+        }
+
+        toggleBox.classList.toggle('on', isPublic);
     }
 
     async function loadEntries() {
@@ -91,9 +111,27 @@
 
             item.innerHTML = html;
 
+            // Public toggle at bottom-left
+            var toggle = document.createElement('div');
+            toggle.className = 'public-toggle';
+            var box = document.createElement('span');
+            box.className = 'toggle-box' + (d.public ? ' on' : '');
+            toggle.appendChild(box);
+            var label = document.createElement('span');
+            label.textContent = 'Public';
+            toggle.appendChild(label);
+
+            toggle.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var newState = !box.classList.contains('on');
+                togglePublic(doc.id, d, newState, box);
+            });
+
+            item.appendChild(toggle);
+
             // Expand/collapse
             item.addEventListener('click', function (e) {
-                if (e.target.closest('[data-del]')) return;
+                if (e.target.closest('[data-del]') || e.target.closest('.public-toggle')) return;
                 item.classList.toggle('entry-expanded');
             });
 
@@ -103,6 +141,11 @@
                 delBtn.addEventListener('click', async function (e) {
                     e.stopPropagation();
                     if (!confirm('Delete this entry?')) return;
+
+                    // Also remove from public if it was public
+                    if (d.public) {
+                        try { await db.collection('public_entries').doc(doc.id).delete(); } catch(err) {}
+                    }
 
                     await db.collection('users').doc(currentUser.uid)
                         .collection('entries').doc(doc.id).delete();

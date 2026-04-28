@@ -329,6 +329,107 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
 
 .entry-expanded .entry-actions { display: flex; }
 
+/* Public toggle */
+.public-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--dim);
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--fg);
+    display: inline-block;
+    vertical-align: middle;
+    transition: background 0.1s;
+}
+
+.toggle-box.on {
+    background: var(--fg);
+}
+
+/* Collective */
+.collective-entry {
+    border-bottom: 1px solid #111;
+    padding: 20px 24px;
+}
+
+.collective-entry .entry-meta {
+    margin-bottom: 8px;
+}
+
+.collective-entry .entry-author {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.collective-entry .entry-content {
+    max-height: none;
+}
+
+.comments-section {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #111;
+}
+
+.comment-item {
+    padding: 8px 0;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.comment-item .comment-meta {
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.comment-form {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.comment-input {
+    flex: 1;
+    background: transparent;
+    border: 1px solid #333;
+    color: var(--fg);
+    font-family: var(--font);
+    font-size: 11px;
+    padding: 6px 10px;
+    outline: none;
+}
+
+.comment-input:focus { border-color: var(--fg); }
+
+.comment-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--fg);
+    background: transparent;
+    color: var(--fg);
+    font-family: var(--font);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.comment-btn:hover { background: #222; }
+
 /* Canvas */
 #canvas-viewport {
     flex: 1;

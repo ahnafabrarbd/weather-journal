@@ -29,10 +29,6 @@
         bindEvents();
     });
 
-    document.getElementById('btn-logout').addEventListener('click', function (e) {
-        e.preventDefault();
-        doSignOut();
-    });
 
     function uid() {
         return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);

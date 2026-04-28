@@ -32,10 +32,6 @@
         start();
     });
 
-    document.getElementById('btn-logout').addEventListener('click', function (e) {
-        e.preventDefault();
-        doSignOut();
-    });
 
     function start() {
         updateTime();

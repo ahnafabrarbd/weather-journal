@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WEATHER — Map</title>
+    <title>WEATHER — Collective</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,22 +13,11 @@
             <div class="links">
                 <a href="journal.html">Log</a>
                 <a href="history.html">History</a>
-                <a href="canvas.html" class="active">Map</a>
-                <a href="collective.html">Collective</a>
+                <a href="canvas.html">Map</a>
+                <a href="collective.html" class="active">Collective</a>
             </div>
         </nav>
-        <div id="canvas-viewport">
-            <div id="canvas-world">
-                <svg id="canvas-edges"></svg>
-                <div id="canvas-nodes"></div>
-            </div>
-        </div>
-        <div class="canvas-toolbar">
-            <button class="btn" id="btn-import">Import Entries</button>
-            <button class="btn" id="btn-add-node">+ Node</button>
-            <button class="btn" id="btn-connect">Connect</button>
-            <button class="btn" id="btn-reset">Reset View</button>
-        </div>
+        <div class="history-list" id="collective-list"></div>
     </div>
     <div class="loading-screen" id="loading">...</div>
 
@@ -36,6 +25,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="firebase-init.js"></script>
-    <script src="canvas.js"></script>
+    <script src="collective.js"></script>
 </body>
 </html>
