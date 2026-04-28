@@ -63,11 +63,11 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
     transition: background 0.1s, color 0.1s;
 }
 
-.btn:hover { background: var(--fg); color: var(--bg); }
+.btn:hover { background: #222; color: var(--fg); }
 .btn:disabled { opacity: 0.3; pointer-events: none; }
 
-.btn-primary { background: var(--fg); color: var(--bg); }
-.btn-primary:hover { background: transparent; color: var(--fg); }
+.btn-primary { background: transparent; color: var(--fg); border: 2px solid var(--fg); }
+.btn-primary:hover { background: var(--fg); color: var(--bg); }
 
 /* Login */
 .login-page {
