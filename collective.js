@@ -35,13 +35,28 @@
             var src = att.data || att.url || '';
             if (!src) return;
             if (att.type && att.type.indexOf('image/') === 0) {
-                html += '<img src="' + src + '" alt="">';
+                html += '<img src="' + src + '" alt="" decoding="sync">';
             } else if (att.type && att.type.indexOf('audio/') === 0) {
                 html += '<audio controls preload="metadata" src="' + src + '"></audio>';
             }
         });
         html += '</div>';
         return html;
+    }
+
+    function wirePopupResize(layer) {
+        layer.on('popupopen', function (e) {
+            var node = e.popup.getElement();
+            if (!node) return;
+            node.querySelectorAll('img').forEach(function (img) {
+                if (img.complete && img.naturalWidth > 0) return;
+                var done = function () { try { e.popup.update(); } catch (err) {} };
+                img.addEventListener('load',  done, { once: true });
+                img.addEventListener('error', done, { once: true });
+            });
+            // Re-measure once on the next frame in case audio/text reflow
+            requestAnimationFrame(function () { try { e.popup.update(); } catch (err) {} });
+        });
     }
 
     function wireTabs() {
@@ -118,8 +133,9 @@
                 fillColor: '#8B2252',
                 fillOpacity: 0.9,
                 weight: 1
-            }).addTo(spaceMap).bindPopup(popup, { maxWidth: 250, minWidth: 150 });
+            }).addTo(spaceMap).bindPopup(popup, { maxWidth: 260, minWidth: 240 });
 
+            wirePopupResize(marker);
             spaceMarkers.push(marker);
             bounds.push([lat, lng]);
         });
