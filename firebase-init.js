@@ -31,11 +31,6 @@ function requireAuth(callback) {
     });
 }
 
-function signInWithGoogle() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    return auth.signInWithPopup(provider);
-}
-
 function doSignOut() {
     return auth.signOut().then(() => { window.location.href = 'index.html'; });
 }

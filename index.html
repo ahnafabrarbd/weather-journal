@@ -5,12 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WEATHER</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .auth-box { width: 280px; display: flex; flex-direction: column; gap: 12px; }
+        .auth-input {
+            background: transparent; border: 1px solid #fff; color: #fff;
+            font-family: var(--font); font-size: 12px; letter-spacing: 1px;
+            padding: 10px 14px; outline: none; text-transform: uppercase;
+        }
+        .auth-input::placeholder { color: #444; text-transform: uppercase; }
+        .auth-input:focus { border-color: #fff; }
+        .auth-error { color: #f44; font-size: 10px; letter-spacing: 1px; text-align: center; min-height: 14px; }
+        .auth-switch { font-size: 10px; letter-spacing: 1px; color: #555; text-align: center; cursor: pointer; text-transform: uppercase; }
+        .auth-switch:hover { color: #fff; }
+        .auth-title { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #555; text-align: center; }
+    </style>
 </head>
 <body>
     <div class="login-page hidden" id="login">
         <h1>WEATHER</h1>
         <p class="subtitle">a journal of the sky</p>
-        <button class="btn" id="btn-login">Sign in with Google</button>
+
+        <div class="auth-box" id="auth-box">
+            <div class="auth-title" id="auth-title">LOG IN</div>
+            <input class="auth-input" type="text" id="input-email" placeholder="Email">
+            <input class="auth-input" type="password" id="input-password" placeholder="Password">
+            <div class="auth-error" id="auth-error"></div>
+            <button class="btn btn-primary" id="btn-submit">LOG IN</button>
+            <div class="auth-switch" id="auth-switch">Don't have an account? Create one</div>
+        </div>
     </div>
     <div class="loading-screen" id="loading">...</div>
 
@@ -20,6 +42,16 @@
     <script>
         var loginEl = document.getElementById('login');
         var loadingEl = document.getElementById('loading');
+        var authTitle = document.getElementById('auth-title');
+        var inputEmail = document.getElementById('input-email');
+        var inputPassword = document.getElementById('input-password');
+        var authError = document.getElementById('auth-error');
+        var btnSubmit = document.getElementById('btn-submit');
+        var authSwitch = document.getElementById('auth-switch');
+
+        var isLogin = true;
+
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
         auth.onAuthStateChanged(function(user) {
             loadingEl.classList.add('hidden');
@@ -30,12 +62,60 @@
             }
         });
 
-        document.getElementById('btn-login').addEventListener('click', function() {
-            signInWithGoogle().catch(function(err) {
-                console.error(err);
-                alert('Sign-in failed: ' + err.message);
-            });
+        authSwitch.addEventListener('click', function() {
+            isLogin = !isLogin;
+            authTitle.textContent = isLogin ? 'LOG IN' : 'CREATE ACCOUNT';
+            btnSubmit.textContent = isLogin ? 'LOG IN' : 'CREATE ACCOUNT';
+            authSwitch.textContent = isLogin
+                ? "Don't have an account? Create one"
+                : "Already have an account? Log in";
+            authError.textContent = '';
         });
+
+        btnSubmit.addEventListener('click', submit);
+
+        inputPassword.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') submit();
+        });
+
+        inputEmail.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') inputPassword.focus();
+        });
+
+        function submit() {
+            var email = inputEmail.value.trim();
+            var pass = inputPassword.value;
+            authError.textContent = '';
+
+            if (!email || !pass) {
+                authError.textContent = 'Enter email and password';
+                return;
+            }
+            if (pass.length < 6) {
+                authError.textContent = 'Password must be at least 6 characters';
+                return;
+            }
+
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = '...';
+
+            var promise = isLogin
+                ? auth.signInWithEmailAndPassword(email, pass)
+                : auth.createUserWithEmailAndPassword(email, pass);
+
+            promise.catch(function(err) {
+                var msg = err.message || 'Something went wrong';
+                if (err.code === 'auth/user-not-found') msg = 'No account with that email';
+                if (err.code === 'auth/wrong-password') msg = 'Wrong password';
+                if (err.code === 'auth/invalid-credential') msg = 'Invalid email or password';
+                if (err.code === 'auth/email-already-in-use') msg = 'Email already in use';
+                if (err.code === 'auth/weak-password') msg = 'Password too weak (min 6 chars)';
+                if (err.code === 'auth/invalid-email') msg = 'Invalid email format';
+                authError.textContent = msg;
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = isLogin ? 'LOG IN' : 'CREATE ACCOUNT';
+            });
+        }
     </script>
 </body>
 </html>
