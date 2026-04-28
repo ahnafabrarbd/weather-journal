@@ -40,13 +40,13 @@
         <p class="subtitle">a journal of the sky</p>
 
         <!-- Logged-in gate: ENTER + Log out -->
-        <div id="gate-logged" class="hidden" style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+        <div id="gate-logged" style="display:none;flex-direction:column;align-items:center;gap:16px;">
             <button class="gate-btn" id="btn-enter-main">ENTER</button>
             <div class="gate-link" id="btn-logout">Log out</div>
         </div>
 
         <!-- Logged-out gate: ENTER (login) + Create Account -->
-        <div id="gate-auth" class="hidden" style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+        <div id="gate-auth" style="display:none;flex-direction:column;align-items:center;gap:16px;">
             <button class="gate-btn" id="btn-enter">ENTER</button>
             <div class="gate-link" id="btn-create">Create Account</div>
         </div>
@@ -90,14 +90,10 @@
             authBox.classList.add('hidden');
 
             if (user) {
-                gateLogged.classList.remove('hidden');
                 gateLogged.style.display = 'flex';
-                gateAuth.classList.add('hidden');
                 gateAuth.style.display = 'none';
             } else {
-                gateAuth.classList.remove('hidden');
                 gateAuth.style.display = 'flex';
-                gateLogged.classList.add('hidden');
                 gateLogged.style.display = 'none';
             }
         });
