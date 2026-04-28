@@ -71,12 +71,15 @@
                 html += '<div class="entry-attachments-count">' + d.attachments.length + ' attachment(s)</div>';
                 html += '<div class="entry-attachments-full">';
                 d.attachments.forEach(function (att) {
+                    var src = att.data || att.url || '';
                     if (att.type && att.type.startsWith('image/')) {
-                        html += '<img src="' + esc(att.url) + '" alt="' + esc(att.name) + '" loading="lazy">';
+                        html += '<img src="' + src + '" alt="' + esc(att.name) + '" loading="lazy">';
                     } else if (att.type && att.type.startsWith('audio/')) {
-                        html += '<audio controls src="' + esc(att.url) + '"></audio>';
+                        html += '<audio controls src="' + src + '"></audio>';
+                    } else if (src.startsWith('data:')) {
+                        html += '<a href="' + src + '" download="' + esc(att.name) + '">' + esc(att.name) + '</a>';
                     } else {
-                        html += '<a href="' + esc(att.url) + '" target="_blank" rel="noopener">' + esc(att.name) + '</a>';
+                        html += '<span>' + esc(att.name) + '</span>';
                     }
                 });
                 html += '</div>';
@@ -100,13 +103,6 @@
                 delBtn.addEventListener('click', async function (e) {
                     e.stopPropagation();
                     if (!confirm('Delete this entry?')) return;
-
-                    // Delete attachments from storage
-                    if (d.attachments) {
-                        for (var i = 0; i < d.attachments.length; i++) {
-                            try { await storage.ref(d.attachments[i].path).delete(); } catch (err) { /* ignore */ }
-                        }
-                    }
 
                     await db.collection('users').doc(currentUser.uid)
                         .collection('entries').doc(doc.id).delete();

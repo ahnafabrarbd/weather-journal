@@ -190,7 +190,14 @@
         try {
             var uploaded = [];
             for (var i = 0; i < attachments.length; i++) {
-                uploaded.push(await uploadFile(currentUser.uid, attachments[i].file));
+                try {
+                    uploaded.push(await processFile(attachments[i].file));
+                } catch (fileErr) {
+                    alert(fileErr.message);
+                    btnPost.disabled = false;
+                    btnPost.textContent = 'POST';
+                    return;
+                }
             }
 
             await db.collection('users').doc(currentUser.uid)
