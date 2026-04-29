@@ -548,6 +548,26 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
     flex: 1;
     background: #000;
     position: relative;
+    contain: layout paint;
+}
+
+.leaflet-container {
+    background: #000;
+    will-change: transform;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.leaflet-tile {
+    will-change: transform;
+    image-rendering: -webkit-optimize-contrast;
+    transition: opacity 180ms ease-out;
+}
+
+.leaflet-fade-anim .leaflet-tile { transition: opacity 180ms ease-out; }
+
+.leaflet-zoom-anim .leaflet-zoom-animated {
+    transition: transform 220ms cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .leaflet-control-attribution { display: none !important; }

@@ -3,6 +3,9 @@
 
     var currentUser = null;
     var map = null;
+    var canvasRenderer = null;
+    var markerLayer = null;
+    var connectionLayer = null;
 
     // markers: array of { id, lat, lng, marker, popupHtml, createdAt }
     var markers = [];
@@ -19,6 +22,7 @@
     var btnConnect = null;
     var banner = null;
     var filterDate = null; // YYYY-MM-DD or null
+    var flyToken = 0;
 
     requireAuth(function (user) {
         currentUser = user;
@@ -50,18 +54,16 @@
         return html;
     }
 
-    function wirePopupResize(layer) {
-        layer.on('popupopen', function (e) {
-            var node = e.popup.getElement();
-            if (!node) return;
-            node.querySelectorAll('img').forEach(function (img) {
-                if (img.complete && img.naturalWidth > 0) return;
-                var done = function () { try { e.popup.update(); } catch (err) {} };
-                img.addEventListener('load',  done, { once: true });
-                img.addEventListener('error', done, { once: true });
-            });
-            requestAnimationFrame(function () { try { e.popup.update(); } catch (err) {} });
+    function onAnyPopupOpen(e) {
+        var node = e.popup.getElement();
+        if (!node) return;
+        node.querySelectorAll('img').forEach(function (img) {
+            if (img.complete && img.naturalWidth > 0) return;
+            var done = function () { try { e.popup.update(); } catch (err) {} };
+            img.addEventListener('load',  done, { once: true });
+            img.addEventListener('error', done, { once: true });
         });
+        requestAnimationFrame(function () { try { e.popup.update(); } catch (err) {} });
     }
 
     function setBanner(text) {
@@ -71,18 +73,42 @@
     }
 
     function initMap() {
+        canvasRenderer = L.canvas({ padding: 0.5 });
+
         map = L.map('map', {
             center: [23.8103, 90.4125],
             zoom: 12,
             zoomControl: false,
-            attributionControl: false
+            attributionControl: false,
+            preferCanvas: true,
+            renderer: canvasRenderer,
+            zoomSnap: 0,
+            zoomDelta: 0.5,
+            wheelPxPerZoomLevel: 80,
+            wheelDebounceTime: 30,
+            inertia: true,
+            inertiaDeceleration: 2500,
+            zoomAnimationThreshold: 6,
+            fadeAnimation: true,
+            markerZoomAnimation: true
         });
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             subdomains: 'abcd',
-            maxZoom: 19,
-            attribution: ''
+            minZoom: 2,
+            maxZoom: 20,
+            maxNativeZoom: 19,
+            attribution: '',
+            updateWhenIdle: false,
+            updateWhenZooming: false,
+            keepBuffer: 4,
+            crossOrigin: 'anonymous'
         }).addTo(map);
+
+        markerLayer = L.layerGroup().addTo(map);
+        connectionLayer = L.layerGroup().addTo(map);
+
+        map.on('popupopen', onAnyPopupOpen);
 
         btnConnect = document.getElementById('btn-connect');
         banner = document.getElementById('map-banner');
@@ -120,8 +146,19 @@
 
     function flyTo(idx) {
         var m = markers[idx];
-        map.flyTo([m.lat, m.lng], 16, { duration: 0.8 });
-        if (!connectMode) m.marker.openPopup();
+        var token = ++flyToken;
+        map.flyTo([m.lat, m.lng], 16, {
+            duration: 0.9,
+            easeLinearity: 0.25
+        });
+        if (!connectMode) {
+            var openWhenSettled = function () {
+                map.off('moveend', openWhenSettled);
+                if (token !== flyToken) return;
+                m.marker.openPopup();
+            };
+            map.on('moveend', openWhenSettled);
+        }
         updateCounter();
     }
 
@@ -139,7 +176,7 @@
         markers.forEach(function (m) {
             m.marker.closePopup();
             if (connectMode) m.marker.unbindPopup();
-            else m.marker.bindPopup(m.popupHtml, { maxWidth: 250, minWidth: 150 });
+            else m.marker.bindPopup(m.popupHtml, { maxWidth: 250, minWidth: 150, autoPan: false });
         });
 
         clearPendingHighlight();
@@ -215,8 +252,11 @@
         var line = L.polyline([[a.lat, a.lng], [b.lat, b.lng]], {
             color: '#8B2252',
             weight: 1.5,
-            opacity: 0.7
-        }).addTo(map);
+            opacity: 0.7,
+            renderer: canvasRenderer,
+            interactive: true,
+            smoothFactor: 1.5
+        }).addTo(connectionLayer);
 
         line.bindPopup(buildConnectionPopup(conn), {
             className: 'connection-popup',
@@ -269,7 +309,7 @@
         if (!window.confirm('Delete this connection?')) return;
         await db.collection('users').doc(currentUser.uid)
             .collection('connections').doc(conn.id).delete();
-        map.removeLayer(line);
+        connectionLayer.removeLayer(line);
         connections = connections.filter(function (c) { return c.id !== conn.id; });
     }
 
@@ -315,13 +355,15 @@
                 color: '#8B2252',
                 fillColor: '#8B2252',
                 fillOpacity: 0.9,
-                weight: 1
-            }).addTo(map).bindPopup(popup, {
+                weight: 1,
+                renderer: canvasRenderer
+            }).bindPopup(popup, {
                 maxWidth: 260,
-                minWidth: 240
-            });
+                minWidth: 240,
+                autoPan: false,
+                closeButton: true
+            }).addTo(markerLayer);
 
-            wirePopupResize(marker);
             attachMarkerClick(marker, doc.id);
 
             var record = {
@@ -380,19 +422,19 @@
         markers.forEach(function (m) {
             var visible = markerMatchesFilter(m);
             if (visible) {
-                if (!map.hasLayer(m.marker)) m.marker.addTo(map);
+                if (!markerLayer.hasLayer(m.marker)) markerLayer.addLayer(m.marker);
                 visibleIds[m.id] = true;
             } else {
-                if (map.hasLayer(m.marker)) map.removeLayer(m.marker);
+                if (markerLayer.hasLayer(m.marker)) markerLayer.removeLayer(m.marker);
             }
         });
 
         connections.forEach(function (c) {
             var bothVisible = visibleIds[c.fromEntryId] && visibleIds[c.toEntryId];
             if (bothVisible) {
-                if (!map.hasLayer(c.polyline)) c.polyline.addTo(map);
+                if (!connectionLayer.hasLayer(c.polyline)) connectionLayer.addLayer(c.polyline);
             } else {
-                if (map.hasLayer(c.polyline)) map.removeLayer(c.polyline);
+                if (connectionLayer.hasLayer(c.polyline)) connectionLayer.removeLayer(c.polyline);
             }
         });
 

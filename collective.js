@@ -13,6 +13,8 @@
     var entriesCache = [];
     var spaceMap = null;
     var spaceMarkers = [];
+    var spaceCanvasRenderer = null;
+    var spaceMarkerLayer = null;
 
     requireAuth(function (user) {
         currentUser = user;
@@ -44,19 +46,16 @@
         return html;
     }
 
-    function wirePopupResize(layer) {
-        layer.on('popupopen', function (e) {
-            var node = e.popup.getElement();
-            if (!node) return;
-            node.querySelectorAll('img').forEach(function (img) {
-                if (img.complete && img.naturalWidth > 0) return;
-                var done = function () { try { e.popup.update(); } catch (err) {} };
-                img.addEventListener('load',  done, { once: true });
-                img.addEventListener('error', done, { once: true });
-            });
-            // Re-measure once on the next frame in case audio/text reflow
-            requestAnimationFrame(function () { try { e.popup.update(); } catch (err) {} });
+    function onAnyPopupOpen(e) {
+        var node = e.popup.getElement();
+        if (!node) return;
+        node.querySelectorAll('img').forEach(function (img) {
+            if (img.complete && img.naturalWidth > 0) return;
+            var done = function () { try { e.popup.update(); } catch (err) {} };
+            img.addEventListener('load',  done, { once: true });
+            img.addEventListener('error', done, { once: true });
         });
+        requestAnimationFrame(function () { try { e.popup.update(); } catch (err) {} });
     }
 
     function wireTabs() {
@@ -73,27 +72,48 @@
 
         if (!isTime) {
             if (!spaceMap) initSpaceMap();
-            else spaceMap.invalidateSize();
+            else requestAnimationFrame(function () { spaceMap.invalidateSize(); });
             renderSpaceMarkers();
         }
     }
 
     function initSpaceMap() {
+        spaceCanvasRenderer = L.canvas({ padding: 0.5 });
+
         spaceMap = L.map('collective-map', {
             center: [23.8103, 90.4125],
             zoom: 3,
             zoomControl: false,
-            attributionControl: false
+            attributionControl: false,
+            preferCanvas: true,
+            renderer: spaceCanvasRenderer,
+            zoomSnap: 0,
+            zoomDelta: 0.5,
+            wheelPxPerZoomLevel: 80,
+            wheelDebounceTime: 30,
+            inertia: true,
+            inertiaDeceleration: 2500,
+            zoomAnimationThreshold: 6
         });
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             subdomains: 'abcd',
-            maxZoom: 19,
-            attribution: ''
+            minZoom: 2,
+            maxZoom: 20,
+            maxNativeZoom: 19,
+            attribution: '',
+            updateWhenIdle: false,
+            updateWhenZooming: false,
+            keepBuffer: 4,
+            crossOrigin: 'anonymous'
         }).addTo(spaceMap);
+
+        spaceMarkerLayer = L.layerGroup().addTo(spaceMap);
+        spaceMap.on('popupopen', onAnyPopupOpen);
     }
 
     function renderSpaceMarkers() {
-        spaceMarkers.forEach(function (m) { spaceMap.removeLayer(m); });
+        spaceMarkerLayer.clearLayers();
         spaceMarkers = [];
 
         var bounds = [];
@@ -132,15 +152,22 @@
                 color: '#8B2252',
                 fillColor: '#8B2252',
                 fillOpacity: 0.9,
-                weight: 1
-            }).addTo(spaceMap).bindPopup(popup, { maxWidth: 260, minWidth: 240 });
+                weight: 1,
+                renderer: spaceCanvasRenderer
+            }).bindPopup(popup, { maxWidth: 260, minWidth: 240 }).addTo(spaceMarkerLayer);
 
-            wirePopupResize(marker);
             spaceMarkers.push(marker);
             bounds.push([lat, lng]);
         });
 
-        if (bounds.length) spaceMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+        if (bounds.length) {
+            spaceMap.flyToBounds(bounds, {
+                padding: [40, 40],
+                maxZoom: 14,
+                duration: 0.9,
+                easeLinearity: 0.25
+            });
+        }
     }
 
     async function loadPublicEntries() {
