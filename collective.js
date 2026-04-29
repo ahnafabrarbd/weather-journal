@@ -12,9 +12,44 @@
 
     var entriesCache = [];
     var spaceMap = null;
-    var spaceMarkers = [];
-    var spaceCanvasRenderer = null;
-    var spaceMarkerLayer = null;
+    var spaceMapReady = false;
+    var spaceOpenPopup = null;
+    var spacePopupById = {};
+
+    var minimalStyle = {
+        version: 8,
+        glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+        sources: {
+            openmaptiles: {
+                type: 'vector',
+                url: 'https://tiles.openfreemap.org/planet'
+            }
+        },
+        layers: [
+            { id: 'background', type: 'background', paint: { 'background-color': '#000' } },
+            {
+                id: 'streets',
+                type: 'line',
+                source: 'openmaptiles',
+                'source-layer': 'transportation',
+                paint: {
+                    'line-color': '#666',
+                    'line-opacity': 0.9,
+                    'line-width': [
+                        'interpolate', ['linear'], ['zoom'],
+                        4,  0.1,
+                        8,  0.25,
+                        11, 0.45,
+                        13, 0.7,
+                        15, 1.0,
+                        17, 1.6,
+                        20, 2.6
+                    ]
+                },
+                layout: { 'line-cap': 'round', 'line-join': 'round' }
+            }
+        ]
+    };
 
     requireAuth(function (user) {
         currentUser = user;
@@ -46,18 +81,6 @@
         return html;
     }
 
-    function onAnyPopupOpen(e) {
-        var node = e.popup.getElement();
-        if (!node) return;
-        node.querySelectorAll('img').forEach(function (img) {
-            if (img.complete && img.naturalWidth > 0) return;
-            var done = function () { try { e.popup.update(); } catch (err) {} };
-            img.addEventListener('load',  done, { once: true });
-            img.addEventListener('error', done, { once: true });
-        });
-        requestAnimationFrame(function () { try { e.popup.update(); } catch (err) {} });
-    }
-
     function wireTabs() {
         tabTime.addEventListener('click', function () { showTab('time'); });
         tabSpace.addEventListener('click', function () { showTab('space'); });
@@ -72,52 +95,83 @@
 
         if (!isTime) {
             if (!spaceMap) initSpaceMap();
-            else requestAnimationFrame(function () { spaceMap.invalidateSize(); });
-            renderSpaceMarkers();
+            else requestAnimationFrame(function () { spaceMap.resize(); });
+            if (spaceMapReady) renderSpaceMarkers();
         }
     }
 
     function initSpaceMap() {
-        spaceCanvasRenderer = L.canvas({ padding: 0.5 });
-
-        spaceMap = L.map('collective-map', {
-            center: [23.8103, 90.4125],
+        spaceMap = new maplibregl.Map({
+            container: 'collective-map',
+            style: minimalStyle,
+            center: [90.4125, 23.8103],
             zoom: 3,
-            zoomControl: false,
+            minZoom: 2,
+            maxZoom: 19,
             attributionControl: false,
-            preferCanvas: true,
-            renderer: spaceCanvasRenderer,
-            zoomSnap: 0,
-            zoomDelta: 0.5,
-            wheelPxPerZoomLevel: 80,
-            wheelDebounceTime: 30,
-            inertia: true,
-            inertiaDeceleration: 2500,
-            zoomAnimationThreshold: 6
+            fadeDuration: 150,
+            dragRotate: false,
+            pitchWithRotate: false,
+            touchPitch: false,
+            maxPitch: 0,
+            renderWorldCopies: false
         });
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd',
-            minZoom: 2,
-            maxZoom: 20,
-            maxNativeZoom: 19,
-            attribution: '',
-            updateWhenIdle: false,
-            updateWhenZooming: false,
-            keepBuffer: 4,
-            crossOrigin: 'anonymous'
-        }).addTo(spaceMap);
+        spaceMap.on('load', function () {
+            spaceMapReady = true;
 
-        spaceMarkerLayer = L.layerGroup().addTo(spaceMap);
-        spaceMap.on('popupopen', onAnyPopupOpen);
+            spaceMap.addSource('entries', { type: 'geojson', data: emptyFC() });
+            spaceMap.addLayer({
+                id: 'entries-circles',
+                type: 'circle',
+                source: 'entries',
+                paint: {
+                    'circle-radius': 5,
+                    'circle-color': '#8B2252',
+                    'circle-opacity': 0.95,
+                    'circle-stroke-width': 1,
+                    'circle-stroke-color': '#8B2252'
+                }
+            });
+
+            spaceMap.on('click', 'entries-circles', onSpaceCircleClick);
+            var canvasEl = spaceMap.getCanvas();
+            spaceMap.on('mouseenter', 'entries-circles', function () { canvasEl.style.cursor = 'pointer'; });
+            spaceMap.on('mouseleave', 'entries-circles', function () { canvasEl.style.cursor = ''; });
+
+            renderSpaceMarkers();
+        });
+    }
+
+    function emptyFC() { return { type: 'FeatureCollection', features: [] }; }
+
+    function onSpaceCircleClick(e) {
+        var feature = e.features && e.features[0];
+        if (!feature) return;
+        var id = feature.properties.id;
+        var html = spacePopupById[id];
+        if (!html) return;
+
+        if (spaceOpenPopup) spaceOpenPopup.remove();
+        spaceOpenPopup = new maplibregl.Popup({
+            closeButton: true,
+            closeOnClick: true,
+            maxWidth: '260px',
+            offset: 12
+        })
+            .setLngLat(feature.geometry.coordinates)
+            .setHTML(html)
+            .addTo(spaceMap);
     }
 
     function renderSpaceMarkers() {
-        spaceMarkerLayer.clearLayers();
-        spaceMarkers = [];
+        if (!spaceMapReady) return;
 
-        var bounds = [];
-        entriesCache.forEach(function (d) {
+        spacePopupById = {};
+        var features = [];
+        var bounds = null;
+
+        entriesCache.forEach(function (d, i) {
             if (!d.location || d.location.latitude === null || d.location.latitude === undefined) return;
 
             var lat = d.location.latitude;
@@ -147,25 +201,35 @@
             popup += renderAttachmentsHtml(d.attachments);
             popup += '<div class="popup-loc">' + esc(locStr) + '</div>';
 
-            var marker = L.circleMarker([lat, lng], {
-                radius: 5,
-                color: '#8B2252',
-                fillColor: '#8B2252',
-                fillOpacity: 0.9,
-                weight: 1,
-                renderer: spaceCanvasRenderer
-            }).bindPopup(popup, { maxWidth: 260, minWidth: 240 }).addTo(spaceMarkerLayer);
+            var fid = 'pe-' + i;
+            spacePopupById[fid] = popup;
 
-            spaceMarkers.push(marker);
-            bounds.push([lat, lng]);
+            features.push({
+                type: 'Feature',
+                properties: { id: fid },
+                geometry: { type: 'Point', coordinates: [lng, lat] }
+            });
+
+            if (!bounds) bounds = [[lng, lat], [lng, lat]];
+            else {
+                if (lng < bounds[0][0]) bounds[0][0] = lng;
+                if (lat < bounds[0][1]) bounds[0][1] = lat;
+                if (lng > bounds[1][0]) bounds[1][0] = lng;
+                if (lat > bounds[1][1]) bounds[1][1] = lat;
+            }
         });
 
-        if (bounds.length) {
-            spaceMap.flyToBounds(bounds, {
-                padding: [40, 40],
+        spaceMap.getSource('entries').setData({
+            type: 'FeatureCollection',
+            features: features
+        });
+
+        if (bounds) {
+            spaceMap.fitBounds(bounds, {
+                padding: 40,
                 maxZoom: 14,
-                duration: 0.9,
-                easeLinearity: 0.25
+                duration: 800,
+                essential: true
             });
         }
     }

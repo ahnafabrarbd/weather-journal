@@ -4,14 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WEATHER — Collective</title>
-    <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
-    <link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin>
-    <link rel="preconnect" href="https://c.basemaps.cartocdn.com" crossorigin>
-    <link rel="preconnect" href="https://d.basemaps.cartocdn.com" crossorigin>
+    <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 </head>
 <body>
     <div class="page hidden" id="app">
@@ -37,7 +34,7 @@
     </div>
     <div class="loading-screen" id="loading">...</div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>

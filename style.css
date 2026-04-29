@@ -543,7 +543,7 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
 
 .canvas-toolbar .btn { font-size: 10px; padding: 8px 14px; }
 
-/* Leaflet map (shared by Map page + Collective Space tab) */
+/* MapLibre map (shared by Map page + Collective Space tab) */
 .map-container {
     flex: 1;
     background: #000;
@@ -551,28 +551,23 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
     contain: layout paint;
 }
 
-.leaflet-container {
+.maplibregl-map {
     background: #000;
-    will-change: transform;
     -webkit-tap-highlight-color: transparent;
-    outline: none;
+    font-family: var(--font);
 }
 
-.leaflet-tile {
-    will-change: transform;
-    image-rendering: -webkit-optimize-contrast;
-    transition: opacity 180ms ease-out;
-}
+.maplibregl-canvas { outline: none; }
 
-.leaflet-fade-anim .leaflet-tile { transition: opacity 180ms ease-out; }
+.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-bottom-left,
+.maplibregl-ctrl-bottom-right,
+.maplibregl-ctrl-top-left,
+.maplibregl-ctrl-top-right { display: none !important; }
 
-.leaflet-zoom-anim .leaflet-zoom-animated {
-    transition: transform 220ms cubic-bezier(0.25, 0.1, 0.25, 1);
-}
+.maplibregl-popup { z-index: 999; }
 
-.leaflet-control-attribution { display: none !important; }
-
-.leaflet-popup-content-wrapper {
+.maplibregl-popup-content {
     background: #000;
     border: 1px solid #fff;
     border-radius: 0;
@@ -580,19 +575,27 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
     font-family: var(--font);
     font-size: 11px;
     line-height: 1.5;
-    padding: 0;
+    padding: 12px 14px;
+    box-shadow: none;
 }
 
-.leaflet-popup-content { margin: 12px 14px; }
+.maplibregl-popup-tip { display: none; }
 
-.leaflet-popup-tip {
-    background: #000;
-    border: 1px solid #fff;
-    border-top: none;
-    border-left: none;
+.maplibregl-popup-close-button {
+    color: #fff !important;
+    font-size: 16px !important;
+    background: transparent !important;
+    border: none !important;
+    width: 22px;
+    height: 22px;
+    right: 2px !important;
+    top: 0 !important;
 }
 
-.leaflet-popup-close-button { color: #fff !important; font-size: 16px !important; }
+.maplibregl-popup-close-button:hover {
+    background: transparent !important;
+    color: #8B2252 !important;
+}
 
 .popup-date {
     font-size: 9px;
@@ -699,7 +702,7 @@ nav a:hover, nav a.active { border-bottom-color: var(--fg); }
     padding: 6px 14px;
 }
 
-.connection-popup .leaflet-popup-content-wrapper { border-color: #8B2252; }
+.connection-popup .maplibregl-popup-content { border-color: #8B2252; }
 
 .popup-actions {
     display: flex;

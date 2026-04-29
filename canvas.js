@@ -3,33 +3,68 @@
 
     var currentUser = null;
     var map = null;
-    var canvasRenderer = null;
-    var markerLayer = null;
-    var connectionLayer = null;
+    var mapReady = false;
+    var openPopup = null;
 
-    // markers: array of { id, lat, lng, marker, popupHtml, createdAt }
-    var markers = [];
-    var markerById = {};
-    var currentIndex = -1;
+    // entries: [{ id, lat, lng, popupHtml, createdAt }]
+    var entries = [];
+    var entryById = {};
 
-    // connections: array of { id, fromEntryId, toEntryId, note, polyline }
+    // connections: [{ id, fromEntryId, toEntryId, note }]
     var connections = [];
 
+    var currentIndex = -1;
     var connectMode = false;
     var pendingFromId = null;
-    var pendingHighlight = null;
+    var filterDate = null;
+    var flyToken = 0;
 
     var btnConnect = null;
     var banner = null;
-    var filterDate = null; // YYYY-MM-DD or null
-    var flyToken = 0;
+
+    var minimalStyle = {
+        version: 8,
+        glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+        sources: {
+            openmaptiles: {
+                type: 'vector',
+                url: 'https://tiles.openfreemap.org/planet'
+            }
+        },
+        layers: [
+            { id: 'background', type: 'background', paint: { 'background-color': '#000' } },
+            {
+                id: 'streets',
+                type: 'line',
+                source: 'openmaptiles',
+                'source-layer': 'transportation',
+                paint: {
+                    'line-color': '#666',
+                    'line-opacity': 0.9,
+                    'line-width': [
+                        'interpolate', ['linear'], ['zoom'],
+                        4,  0.1,
+                        8,  0.25,
+                        11, 0.45,
+                        13, 0.7,
+                        15, 1.0,
+                        17, 1.6,
+                        20, 2.6
+                    ]
+                },
+                layout: {
+                    'line-cap': 'round',
+                    'line-join': 'round'
+                }
+            }
+        ]
+    };
 
     requireAuth(function (user) {
         currentUser = user;
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
         initMap();
-        loadEntries().then(loadConnections);
     });
 
     function esc(text) {
@@ -54,18 +89,6 @@
         return html;
     }
 
-    function onAnyPopupOpen(e) {
-        var node = e.popup.getElement();
-        if (!node) return;
-        node.querySelectorAll('img').forEach(function (img) {
-            if (img.complete && img.naturalWidth > 0) return;
-            var done = function () { try { e.popup.update(); } catch (err) {} };
-            img.addEventListener('load',  done, { once: true });
-            img.addEventListener('error', done, { once: true });
-        });
-        requestAnimationFrame(function () { try { e.popup.update(); } catch (err) {} });
-    }
-
     function setBanner(text) {
         if (!text) { banner.classList.add('hidden'); banner.textContent = ''; return; }
         banner.textContent = text;
@@ -73,42 +96,21 @@
     }
 
     function initMap() {
-        canvasRenderer = L.canvas({ padding: 0.5 });
-
-        map = L.map('map', {
-            center: [23.8103, 90.4125],
-            zoom: 12,
-            zoomControl: false,
-            attributionControl: false,
-            preferCanvas: true,
-            renderer: canvasRenderer,
-            zoomSnap: 0,
-            zoomDelta: 0.5,
-            wheelPxPerZoomLevel: 80,
-            wheelDebounceTime: 30,
-            inertia: true,
-            inertiaDeceleration: 2500,
-            zoomAnimationThreshold: 6,
-            fadeAnimation: true,
-            markerZoomAnimation: true
-        });
-
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd',
+        map = new maplibregl.Map({
+            container: 'map',
+            style: minimalStyle,
+            center: [90.4125, 23.8103],
+            zoom: 11,
             minZoom: 2,
-            maxZoom: 20,
-            maxNativeZoom: 19,
-            attribution: '',
-            updateWhenIdle: false,
-            updateWhenZooming: false,
-            keepBuffer: 4,
-            crossOrigin: 'anonymous'
-        }).addTo(map);
-
-        markerLayer = L.layerGroup().addTo(map);
-        connectionLayer = L.layerGroup().addTo(map);
-
-        map.on('popupopen', onAnyPopupOpen);
+            maxZoom: 19,
+            attributionControl: false,
+            fadeDuration: 150,
+            dragRotate: false,
+            pitchWithRotate: false,
+            touchPitch: false,
+            maxPitch: 0,
+            renderWorldCopies: false
+        });
 
         btnConnect = document.getElementById('btn-connect');
         banner = document.getElementById('map-banner');
@@ -130,88 +132,258 @@
         document.getElementById('btn-connect-all').addEventListener('click', chainVisible);
 
         document.getElementById('btn-prev-entry').addEventListener('click', function () {
-            if (!markers.length) return;
+            if (!entries.length) return;
             currentIndex--;
-            if (currentIndex < 0) currentIndex = markers.length - 1;
-            flyTo(currentIndex);
+            if (currentIndex < 0) currentIndex = entries.length - 1;
+            flyToEntry(currentIndex);
         });
 
         document.getElementById('btn-next-entry').addEventListener('click', function () {
-            if (!markers.length) return;
+            if (!entries.length) return;
             currentIndex++;
-            if (currentIndex >= markers.length) currentIndex = 0;
-            flyTo(currentIndex);
+            if (currentIndex >= entries.length) currentIndex = 0;
+            flyToEntry(currentIndex);
+        });
+
+        map.on('load', function () {
+            mapReady = true;
+
+            map.addSource('connections', { type: 'geojson', data: emptyFC() });
+            map.addSource('entries',     { type: 'geojson', data: emptyFC() });
+
+            map.addLayer({
+                id: 'connections-lines',
+                type: 'line',
+                source: 'connections',
+                paint: {
+                    'line-color': '#8B2252',
+                    'line-width': 1.5,
+                    'line-opacity': 0.7
+                },
+                layout: { 'line-cap': 'round', 'line-join': 'round' }
+            });
+
+            map.addLayer({
+                id: 'entries-circles',
+                type: 'circle',
+                source: 'entries',
+                paint: {
+                    'circle-radius': 5,
+                    'circle-color': '#8B2252',
+                    'circle-opacity': 0.95,
+                    'circle-stroke-width': 1,
+                    'circle-stroke-color': '#8B2252'
+                }
+            });
+
+            map.addLayer({
+                id: 'entries-highlight',
+                type: 'circle',
+                source: 'entries',
+                filter: ['==', ['get', 'id'], '__none__'],
+                paint: {
+                    'circle-radius': 8,
+                    'circle-color': 'rgba(0,0,0,0)',
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#fff'
+                }
+            });
+
+            map.on('click', 'entries-circles', onEntryClick);
+            map.on('click', 'connections-lines', onConnectionClick);
+
+            var canvasEl = map.getCanvas();
+            map.on('mouseenter', 'entries-circles',     function () { canvasEl.style.cursor = 'pointer'; });
+            map.on('mouseleave', 'entries-circles',     function () { canvasEl.style.cursor = ''; });
+            map.on('mouseenter', 'connections-lines',   function () { canvasEl.style.cursor = 'pointer'; });
+            map.on('mouseleave', 'connections-lines',   function () { canvasEl.style.cursor = ''; });
+
+            loadEntries().then(loadConnections);
         });
     }
 
-    function flyTo(idx) {
-        var m = markers[idx];
+    function emptyFC() { return { type: 'FeatureCollection', features: [] }; }
+
+    function visibleEntries() { return entries.filter(entryMatchesFilter); }
+
+    function buildEntriesGeoJSON() {
+        return {
+            type: 'FeatureCollection',
+            features: visibleEntries().map(function (e) {
+                return {
+                    type: 'Feature',
+                    properties: { id: e.id },
+                    geometry: { type: 'Point', coordinates: [e.lng, e.lat] }
+                };
+            })
+        };
+    }
+
+    function buildConnectionsGeoJSON() {
+        var visible = {};
+        visibleEntries().forEach(function (e) { visible[e.id] = true; });
+        return {
+            type: 'FeatureCollection',
+            features: connections
+                .map(function (c) {
+                    if (!visible[c.fromEntryId] || !visible[c.toEntryId]) return null;
+                    var a = entryById[c.fromEntryId];
+                    var b = entryById[c.toEntryId];
+                    if (!a || !b) return null;
+                    return {
+                        type: 'Feature',
+                        properties: { id: c.id },
+                        geometry: {
+                            type: 'LineString',
+                            coordinates: [[a.lng, a.lat], [b.lng, b.lat]]
+                        }
+                    };
+                })
+                .filter(Boolean)
+        };
+    }
+
+    function refreshSources() {
+        if (!mapReady) return;
+        map.getSource('entries').setData(buildEntriesGeoJSON());
+        map.getSource('connections').setData(buildConnectionsGeoJSON());
+    }
+
+    function entryMatchesFilter(e) {
+        if (!filterDate) return true;
+        return localDateKey(e.createdAt) === filterDate;
+    }
+
+    function localDateKey(d) {
+        if (!d) return null;
+        var y = d.getFullYear();
+        var m = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + day;
+    }
+
+    function applyFilter() {
+        refreshSources();
+        var visibleCount = visibleEntries().length;
+        var countEl = document.getElementById('entry-count');
+        if (filterDate) {
+            countEl.textContent = visibleCount + ' on ' + filterDate;
+        } else if (entries.length > 0) {
+            countEl.textContent = entries.length + ' entr' + (entries.length === 1 ? 'y' : 'ies');
+        }
+    }
+
+    function flyToEntry(idx) {
+        var e = entries[idx];
         var token = ++flyToken;
-        map.flyTo([m.lat, m.lng], 16, {
-            duration: 0.9,
-            easeLinearity: 0.25
+        if (openPopup) { openPopup.remove(); openPopup = null; }
+        map.flyTo({
+            center: [e.lng, e.lat],
+            zoom: 16,
+            speed: 1.4,
+            curve: 1.42,
+            essential: true
         });
         if (!connectMode) {
             var openWhenSettled = function () {
                 map.off('moveend', openWhenSettled);
                 if (token !== flyToken) return;
-                m.marker.openPopup();
+                openEntryPopup(e);
             };
             map.on('moveend', openWhenSettled);
         }
         updateCounter();
     }
 
+    function openEntryPopup(e) {
+        if (openPopup) openPopup.remove();
+        openPopup = new maplibregl.Popup({
+            closeButton: true,
+            closeOnClick: true,
+            maxWidth: '260px',
+            offset: 12
+        })
+            .setLngLat([e.lng, e.lat])
+            .setHTML(e.popupHtml)
+            .addTo(map);
+    }
+
     function updateCounter() {
         var el = document.getElementById('entry-count');
-        if (markers.length > 0) {
-            el.textContent = (currentIndex + 1) + ' / ' + markers.length;
+        if (entries.length > 0) {
+            el.textContent = (currentIndex + 1) + ' / ' + entries.length;
         }
     }
 
     function toggleConnectMode() {
         connectMode = !connectMode;
         btnConnect.classList.toggle('on', connectMode);
-
-        markers.forEach(function (m) {
-            m.marker.closePopup();
-            if (connectMode) m.marker.unbindPopup();
-            else m.marker.bindPopup(m.popupHtml, { maxWidth: 250, minWidth: 150, autoPan: false });
-        });
-
+        if (openPopup) { openPopup.remove(); openPopup = null; }
         clearPendingHighlight();
         pendingFromId = null;
-
         if (connectMode) setBanner('Connect mode — click two markers');
         else setBanner('');
     }
 
     function clearPendingHighlight() {
-        if (pendingHighlight) {
-            pendingHighlight.setStyle({ radius: 5, weight: 1, color: '#8B2252' });
-            pendingHighlight = null;
+        if (mapReady) map.setFilter('entries-highlight', ['==', ['get', 'id'], '__none__']);
+    }
+
+    function highlightPending(id) {
+        map.setFilter('entries-highlight', ['==', ['get', 'id'], id]);
+    }
+
+    function onEntryClick(e) {
+        var feature = e.features && e.features[0];
+        if (!feature) return;
+        var id = feature.properties.id;
+
+        if (connectMode) {
+            handleConnectClick(id);
+            return;
+        }
+
+        var entry = entryById[id];
+        if (entry) openEntryPopup(entry);
+    }
+
+    function onConnectionClick(e) {
+        var feature = e.features && e.features[0];
+        if (!feature) return;
+        var id = feature.properties.id;
+        var conn = connections.find(function (c) { return c.id === id; });
+        if (!conn) return;
+
+        if (openPopup) openPopup.remove();
+        var popup = new maplibregl.Popup({
+            closeButton: true,
+            closeOnClick: true,
+            maxWidth: '240px',
+            className: 'connection-popup'
+        })
+            .setLngLat(e.lngLat)
+            .setHTML(buildConnectionPopup(conn))
+            .addTo(map);
+        openPopup = popup;
+
+        var node = popup.getElement();
+        if (node) {
+            var editBtn = node.querySelector('[data-act="edit"]');
+            var delBtn = node.querySelector('[data-act="del"]');
+            if (editBtn) editBtn.addEventListener('click', function () { editConnection(conn, popup); });
+            if (delBtn)  delBtn.addEventListener('click',  function () { deleteConnection(conn, popup); });
         }
     }
 
-    function highlightPending(m) {
-        m.marker.setStyle({ radius: 7, weight: 2, color: '#fff' });
-        pendingHighlight = m.marker;
-    }
-
-    function onMarkerClickInConnectMode(entryId) {
-        if (!connectMode) return;
-        var m = markerById[entryId];
-        if (!m) return;
-
+    function handleConnectClick(entryId) {
         if (!pendingFromId) {
             pendingFromId = entryId;
-            highlightPending(m);
+            highlightPending(entryId);
             setBanner('Click a second marker to connect');
             return;
         }
 
         if (pendingFromId === entryId) {
-            // Same marker clicked twice — cancel selection
             clearPendingHighlight();
             pendingFromId = null;
             setBanner('Connect mode — click two markers');
@@ -236,50 +408,13 @@
                 note: note || '',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-        renderConnection({
+        connections.push({
             id: ref.id,
             fromEntryId: fromEntryId,
             toEntryId: toEntryId,
             note: note || ''
         });
-    }
-
-    function renderConnection(conn) {
-        var a = markerById[conn.fromEntryId];
-        var b = markerById[conn.toEntryId];
-        if (!a || !b) return;
-
-        var line = L.polyline([[a.lat, a.lng], [b.lat, b.lng]], {
-            color: '#8B2252',
-            weight: 1.5,
-            opacity: 0.7,
-            renderer: canvasRenderer,
-            interactive: true,
-            smoothFactor: 1.5
-        }).addTo(connectionLayer);
-
-        line.bindPopup(buildConnectionPopup(conn), {
-            className: 'connection-popup',
-            maxWidth: 240,
-            minWidth: 140
-        });
-
-        line.on('popupopen', function (e) {
-            var node = e.popup.getElement();
-            if (!node) return;
-            var editBtn = node.querySelector('[data-act="edit"]');
-            var delBtn = node.querySelector('[data-act="del"]');
-            if (editBtn) editBtn.addEventListener('click', function () { editConnection(conn, line); });
-            if (delBtn) delBtn.addEventListener('click', function () { deleteConnection(conn, line); });
-        });
-
-        connections.push({
-            id: conn.id,
-            fromEntryId: conn.fromEntryId,
-            toEntryId: conn.toEntryId,
-            note: conn.note,
-            polyline: line
-        });
+        refreshSources();
     }
 
     function buildConnectionPopup(conn) {
@@ -293,28 +428,25 @@
             '</div>';
     }
 
-    async function editConnection(conn, line) {
-        var entry = connections.find(function (c) { return c.id === conn.id; });
-        var current = entry ? entry.note : conn.note;
-        var next = window.prompt('Edit note:', current || '');
+    async function editConnection(conn, popup) {
+        var next = window.prompt('Edit note:', conn.note || '');
         if (next === null) return;
         await db.collection('users').doc(currentUser.uid)
             .collection('connections').doc(conn.id).update({ note: next });
-        if (entry) entry.note = next;
         conn.note = next;
-        line.setPopupContent(buildConnectionPopup(conn));
+        var entry = connections.find(function (c) { return c.id === conn.id; });
+        if (entry) entry.note = next;
+        popup.setHTML(buildConnectionPopup(conn));
     }
 
-    async function deleteConnection(conn, line) {
+    async function deleteConnection(conn, popup) {
         if (!window.confirm('Delete this connection?')) return;
         await db.collection('users').doc(currentUser.uid)
             .collection('connections').doc(conn.id).delete();
-        connectionLayer.removeLayer(line);
         connections = connections.filter(function (c) { return c.id !== conn.id; });
-    }
-
-    function attachMarkerClick(marker, entryId) {
-        marker.on('click', function () { onMarkerClickInConnectMode(entryId); });
+        popup.remove();
+        if (openPopup === popup) openPopup = null;
+        refreshSources();
     }
 
     async function loadEntries() {
@@ -350,40 +482,24 @@
             popup += renderAttachmentsHtml(d.attachments);
             popup += '<div class="popup-loc">' + esc(locStr) + '</div>';
 
-            var marker = L.circleMarker([lat, lng], {
-                radius: 5,
-                color: '#8B2252',
-                fillColor: '#8B2252',
-                fillOpacity: 0.9,
-                weight: 1,
-                renderer: canvasRenderer
-            }).bindPopup(popup, {
-                maxWidth: 260,
-                minWidth: 240,
-                autoPan: false,
-                closeButton: true
-            }).addTo(markerLayer);
-
-            attachMarkerClick(marker, doc.id);
-
             var record = {
                 id: doc.id,
                 lat: lat,
                 lng: lng,
-                marker: marker,
                 popupHtml: popup,
                 createdAt: d.createdAt ? d.createdAt.toDate() : null
             };
-            markers.push(record);
-            markerById[doc.id] = record;
+            entries.push(record);
+            entryById[doc.id] = record;
         });
 
-        var countEl = document.getElementById('entry-count');
+        refreshSources();
 
-        if (markers.length > 0) {
-            countEl.textContent = markers.length + ' entr' + (markers.length === 1 ? 'y' : 'ies');
+        var countEl = document.getElementById('entry-count');
+        if (entries.length > 0) {
+            countEl.textContent = entries.length + ' entr' + (entries.length === 1 ? 'y' : 'ies');
             currentIndex = 0;
-            flyTo(0);
+            flyToEntry(0);
         } else {
             countEl.textContent = 'no entries with location — allow location access when posting';
         }
@@ -394,63 +510,19 @@
             .collection('connections').get();
         snap.forEach(function (doc) {
             var d = doc.data();
-            renderConnection({
+            connections.push({
                 id: doc.id,
                 fromEntryId: d.fromEntryId,
                 toEntryId: d.toEntryId,
                 note: d.note || ''
             });
         });
-        applyFilter();
-    }
-
-    function localDateKey(d) {
-        if (!d) return null;
-        var y = d.getFullYear();
-        var m = String(d.getMonth() + 1).padStart(2, '0');
-        var day = String(d.getDate()).padStart(2, '0');
-        return y + '-' + m + '-' + day;
-    }
-
-    function markerMatchesFilter(m) {
-        if (!filterDate) return true;
-        return localDateKey(m.createdAt) === filterDate;
-    }
-
-    function applyFilter() {
-        var visibleIds = {};
-        markers.forEach(function (m) {
-            var visible = markerMatchesFilter(m);
-            if (visible) {
-                if (!markerLayer.hasLayer(m.marker)) markerLayer.addLayer(m.marker);
-                visibleIds[m.id] = true;
-            } else {
-                if (markerLayer.hasLayer(m.marker)) markerLayer.removeLayer(m.marker);
-            }
-        });
-
-        connections.forEach(function (c) {
-            var bothVisible = visibleIds[c.fromEntryId] && visibleIds[c.toEntryId];
-            if (bothVisible) {
-                if (!connectionLayer.hasLayer(c.polyline)) connectionLayer.addLayer(c.polyline);
-            } else {
-                if (connectionLayer.hasLayer(c.polyline)) connectionLayer.removeLayer(c.polyline);
-            }
-        });
-
-        var visibleCount = Object.keys(visibleIds).length;
-        var countEl = document.getElementById('entry-count');
-        if (filterDate) {
-            countEl.textContent = visibleCount + ' on ' + filterDate;
-        } else if (markers.length > 0) {
-            countEl.textContent = markers.length + ' entr' + (markers.length === 1 ? 'y' : 'ies');
-        }
+        refreshSources();
     }
 
     async function chainVisible() {
-        var visible = markers
-            .filter(markerMatchesFilter)
-            .filter(function (m) { return m.createdAt; })
+        var visible = visibleEntries()
+            .filter(function (e) { return e.createdAt; })
             .slice()
             .sort(function (a, b) { return a.createdAt - b.createdAt; });
 
@@ -464,6 +536,5 @@
         for (var i = 0; i < visible.length - 1; i++) {
             await createConnection(visible[i].id, visible[i + 1].id, '');
         }
-        applyFilter();
     }
 })();
