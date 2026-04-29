@@ -22,9 +22,25 @@
     var btnConnect = null;
     var banner = null;
 
+    // Progressive disclosure: only render road classes that matter at the
+    // current zoom. Drawing every alleyway at zoom 5 is what made the
+    // previous setup feel heavy — there's nothing to see and a lot to draw.
+    var ROAD_FILTER = ['step', ['zoom'],
+        ['match', ['get', 'class'], ['motorway', 'trunk'], true, false],
+        7,
+        ['match', ['get', 'class'], ['motorway', 'trunk', 'primary'], true, false],
+        10,
+        ['match', ['get', 'class'], ['motorway', 'trunk', 'primary', 'secondary'], true, false],
+        12,
+        ['match', ['get', 'class'], ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'], true, false],
+        14,
+        ['match', ['get', 'class'], ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor', 'street'], true, false],
+        16,
+        ['match', ['get', 'class'], ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor', 'street', 'service', 'path', 'track'], true, false]
+    ];
+
     var minimalStyle = {
         version: 8,
-        glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
         sources: {
             openmaptiles: {
                 type: 'vector',
@@ -38,18 +54,19 @@
                 type: 'line',
                 source: 'openmaptiles',
                 'source-layer': 'transportation',
+                filter: ROAD_FILTER,
                 paint: {
-                    'line-color': '#666',
+                    'line-color': '#6a6a6a',
                     'line-opacity': 0.9,
                     'line-width': [
                         'interpolate', ['linear'], ['zoom'],
-                        4,  0.1,
-                        8,  0.25,
-                        11, 0.45,
-                        13, 0.7,
-                        15, 1.0,
-                        17, 1.6,
-                        20, 2.6
+                        4,  0.2,
+                        8,  0.45,
+                        11, 0.65,
+                        13, 0.95,
+                        15, 1.3,
+                        17, 1.9,
+                        20, 3.0
                     ]
                 },
                 layout: {
@@ -102,15 +119,25 @@
             center: [90.4125, 23.8103],
             zoom: 11,
             minZoom: 2,
-            maxZoom: 19,
+            maxZoom: 18,
             attributionControl: false,
-            fadeDuration: 150,
+            fadeDuration: 0,
+            antialias: false,
+            refreshExpiredTiles: false,
+            crossSourceCollisions: false,
+            maxTileCacheSize: 512,
             dragRotate: false,
             pitchWithRotate: false,
             touchPitch: false,
             maxPitch: 0,
-            renderWorldCopies: false
+            renderWorldCopies: false,
+            bearingSnap: 0
         });
+
+        // Smoother trackpad / wheel zoom — defaults feel jumpy on macOS.
+        map.scrollZoom.setZoomRate(1 / 100);
+        map.scrollZoom.setWheelZoomRate(1 / 450);
+        map.touchZoomRotate.disableRotation();
 
         btnConnect = document.getElementById('btn-connect');
         banner = document.getElementById('map-banner');
